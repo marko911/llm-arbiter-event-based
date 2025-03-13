@@ -1,9 +1,6 @@
 "use client";
 
 import { useState } from "react";
-import { experimental_useObject } from "ai/react";
-import { questionsSchema } from "@/lib/schemas";
-import { z } from "zod";
 import { toast } from "sonner";
 import { FileUp, Plus, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -15,95 +12,129 @@ import {
   CardTitle,
   CardDescription,
 } from "@/components/ui/card";
-import { Progress } from "@/components/ui/progress";
-import Quiz from "@/components/quiz";
-import { Link } from "@/components/ui/link";
-import NextLink from "next/link";
-import { generateQuizTitle } from "./actions";
-import { AnimatePresence, motion } from "framer-motion";
-import { VercelIcon, GitIcon } from "@/components/icons";
+import { AnimatePresence, motion, progress } from "framer-motion";
+
+interface AnalysisResponse {
+  data: {
+    synthesis: string;
+    confidence: number;
+    analysis: string;
+    dissent: string;
+    needsIteration: boolean;
+    refinementAreas: string;
+  };
+  displayName: string;
+}
 
 export default function ChatWithFiles() {
   const [files, setFiles] = useState<File[]>([]);
-  const [questions, setQuestions] = useState<z.infer<typeof questionsSchema>>(
-    [],
-  );
+  const [analysis, setAnalysis] = useState<AnalysisResponse | null>(null);
   const [isDragging, setIsDragging] = useState(false);
-  const [title, setTitle] = useState<string>();
-
-  const {
-    submit,
-    object: partialQuestions,
-    isLoading,
-  } = experimental_useObject({
-    api: "/api/generate-quiz",
-    schema: questionsSchema,
-    initialValue: undefined,
-    onError: (error) => {
-      toast.error("Failed to generate quiz. Please try again.");
-      setFiles([]);
-    },
-    onFinish: ({ object }) => {
-      setQuestions(object ?? []);
-    },
-  });
+  const [isLoading, setIsLoading] = useState(false);
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const isSafari = /^((?!chrome|android).)*safari/i.test(navigator.userAgent);
 
     if (isSafari && isDragging) {
       toast.error(
-        "Safari does not support drag & drop. Please use the file picker.",
+        "Safari does not support drag & drop. Please use the file picker."
       );
       return;
     }
 
     const selectedFiles = Array.from(e.target.files || []);
     const validFiles = selectedFiles.filter(
-      (file) => file.type === "application/pdf" && file.size <= 5 * 1024 * 1024,
+      (file) =>
+        file.type === "application/json" && file.size <= 15 * 1024 * 1024
     );
-    console.log(validFiles);
 
     if (validFiles.length !== selectedFiles.length) {
-      toast.error("Only PDF files under 5MB are allowed.");
+      toast.error("Only JSON files under 15MB are allowed.");
     }
 
     setFiles(validFiles);
   };
 
-  const encodeFileAsBase64 = (file: File): Promise<string> => {
-    return new Promise((resolve, reject) => {
-      const reader = new FileReader();
-      reader.readAsDataURL(file);
-      reader.onload = () => resolve(reader.result as string);
-      reader.onerror = (error) => reject(error);
-    });
-  };
-
   const handleSubmitWithFiles = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
-    const encodedFiles = await Promise.all(
-      files.map(async (file) => ({
-        name: file.name,
-        type: file.type,
-        data: await encodeFileAsBase64(file),
-      })),
-    );
-    submit({ files: encodedFiles });
-    const generatedTitle = await generateQuizTitle(encodedFiles[0].name);
-    setTitle(generatedTitle);
+    setIsLoading(true);
+    try {
+      const fileData = await files[0].text();
+      const response = await fetch("/api/generate-report", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          files: [{ name: files[0].name, data: fileData }],
+        }),
+      });
+
+      if (!response.ok) {
+        throw new Error("Failed to generate analysis");
+      }
+
+      const result = await response.json();
+      console.log("result", result);
+      setAnalysis(result.message || null);
+    } catch (error) {
+      toast.error("Failed to generate analysis. Please try again.");
+      setFiles([]);
+    } finally {
+      setIsLoading(false);
+    }
   };
 
-  const clearPDF = () => {
-    setFiles([]);
-    setQuestions([]);
-  };
-
-  const progress = partialQuestions ? (partialQuestions.length / 4) * 100 : 0;
-
-  if (questions.length === 4) {
+  if (analysis) {
     return (
-      <Quiz title={title ?? "Quiz"} questions={questions} clearPDF={clearPDF} />
+      <Card className="w-full max-w-4xl mx-auto mt-12 p-6">
+        <CardHeader>
+          <CardTitle>Financial Analysis</CardTitle>
+          <CardDescription>
+            Confidence Score: {analysis.data.confidence}
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-6">
+          <div className="prose dark:prose-invert space-y-4">
+            <div>
+              <h2>Synthesis</h2>
+              <div className="whitespace-pre-wrap">
+                {analysis.data.synthesis}
+              </div>
+            </div>
+            <div>
+              <h2>Analysis of Model Responses</h2>
+              <div className="whitespace-pre-wrap">
+                {analysis.data.analysis}
+              </div>
+            </div>
+            <div>
+              <h2>Dissenting Views</h2>
+              <div className="whitespace-pre-wrap">{analysis.data.dissent}</div>
+            </div>
+            <div>
+              {analysis.data.refinementAreas && (
+                <>
+                  <h2>Areas for Refinement</h2>
+                  <div className="whitespace-pre-wrap">
+                    {analysis.data.refinementAreas}
+                  </div>
+                </>
+              )}
+            </div>
+          </div>
+        </CardContent>
+        <CardFooter>
+          <Button
+            onClick={() => {
+              setFiles([]);
+              setAnalysis(null);
+            }}
+          >
+            Generate New Analysis
+          </Button>
+        </CardFooter>
+      </Card>
     );
   }
 
@@ -136,7 +167,7 @@ export default function ChatWithFiles() {
           >
             <div>Drag and drop files here</div>
             <div className="text-sm dark:text-zinc-400 text-zinc-500">
-              {"(PDFs only)"}
+              {"(JSONs only)"}
             </div>
           </motion.div>
         )}
@@ -154,15 +185,10 @@ export default function ChatWithFiles() {
           </div>
           <div className="space-y-2">
             <CardTitle className="text-2xl font-bold">
-              PDF Quiz Generator
+              JSON Financial Analyzer
             </CardTitle>
             <CardDescription className="text-base">
-              Upload a PDF to generate an interactive quiz based on its content
-              using the <Link href="https://sdk.vercel.ai">AI SDK</Link> and{" "}
-              <Link href="https://sdk.vercel.ai/providers/ai-sdk-providers/google-generative-ai">
-                Google&apos;s Gemini Pro
-              </Link>
-              .
+              Upload a JSON file to generate a financial analysis.
             </CardDescription>
           </div>
         </CardHeader>
@@ -174,7 +200,7 @@ export default function ChatWithFiles() {
               <input
                 type="file"
                 onChange={handleFileChange}
-                accept="application/pdf"
+                accept="application/json"
                 className="absolute inset-0 opacity-0 cursor-pointer"
               />
               <FileUp className="h-8 w-8 mb-2 text-muted-foreground" />
@@ -184,7 +210,7 @@ export default function ChatWithFiles() {
                     {files[0].name}
                   </span>
                 ) : (
-                  <span>Drop your PDF here or click to browse.</span>
+                  <span>Drop your JSON here or click to browse.</span>
                 )}
               </p>
             </div>
@@ -196,23 +222,16 @@ export default function ChatWithFiles() {
               {isLoading ? (
                 <span className="flex items-center space-x-2">
                   <Loader2 className="h-4 w-4 animate-spin" />
-                  <span>Generating Quiz...</span>
+                  <span>Generating Analysis...</span>
                 </span>
               ) : (
-                "Generate Quiz"
+                "Generate Analysis"
               )}
             </Button>
           </form>
         </CardContent>
         {isLoading && (
           <CardFooter className="flex flex-col space-y-4">
-            <div className="w-full space-y-1">
-              <div className="flex justify-between text-sm text-muted-foreground">
-                <span>Progress</span>
-                <span>{Math.round(progress)}%</span>
-              </div>
-              <Progress value={progress} className="h-2" />
-            </div>
             <div className="w-full space-y-2">
               <div className="grid grid-cols-6 sm:grid-cols-4 items-center space-x-2 text-sm">
                 <div
@@ -221,38 +240,13 @@ export default function ChatWithFiles() {
                   }`}
                 />
                 <span className="text-muted-foreground text-center col-span-4 sm:col-span-2">
-                  {partialQuestions
-                    ? `Generating question ${partialQuestions.length + 1} of 4`
-                    : "Analyzing PDF content"}
+                  Analyzing JSON content
                 </span>
               </div>
             </div>
           </CardFooter>
         )}
       </Card>
-      <motion.div
-        className="flex flex-row gap-4 items-center justify-between fixed bottom-6 text-xs "
-        initial={{ y: 20, opacity: 0 }}
-        animate={{ y: 0, opacity: 1 }}
-      >
-        <NextLink
-          target="_blank"
-          href="https://github.com/vercel-labs/ai-sdk-preview-pdf-support"
-          className="flex flex-row gap-2 items-center border px-2 py-1.5 rounded-md hover:bg-zinc-100 dark:border-zinc-800 dark:hover:bg-zinc-800"
-        >
-          <GitIcon />
-          View Source Code
-        </NextLink>
-
-        <NextLink
-          target="_blank"
-          href="https://vercel.com/templates/next.js/ai-quiz-generator"
-          className="flex flex-row gap-2 items-center bg-zinc-900 px-2 py-1.5 rounded-md text-zinc-50 hover:bg-zinc-950 dark:bg-zinc-100 dark:text-zinc-900 dark:hover:bg-zinc-50"
-        >
-          <VercelIcon size={14} />
-          Deploy with Vercel
-        </NextLink>
-      </motion.div>
     </div>
   );
 }

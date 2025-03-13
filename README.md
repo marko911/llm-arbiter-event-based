@@ -1,41 +1,37 @@
-# AI SDK PDF Support Example
+# Financial Consortium AI
 
-This example demonstrates how to use the [AI SDK](https://sdk.vercel.ai/docs) with [Next.js](https://nextjs.org/) with the `useObject` hook to submit PDF messages to the AI provider of your choice (Google or Anthropic).
+This example demonstrates how to implement the LLM Consortium pattern using an event-based architecture. The pattern orchestrates multiple AI models working together as a consortium to perform complex financial analysis, with an arbiter model coordinating and synthesizing their outputs.
 
-## Deploy your own
+## Key Features
 
-[![Deploy with Vercel](https://vercel.com/button)](https://vercel.com/new/clone?repository-url=https%3A%2F%2Fgithub.com%2Fvercel-labs%2Fai-sdk-preview-pdf-support&env=GOOGLE_API_KEY&envDescription=API%20keys%20needed%20for%20application&envLink=google.com)
+- **LLM Consortium Pattern**: Coordinates multiple AI models (Claude, GPT-4, Gemini) working together as a consortium
+- **Event-Based Architecture**: Uses events to manage the workflow between consortium members
+- **Arbiter System**: Implements an arbiter model to evaluate, synthesize and refine the consortium's outputs
+- **Financial Analysis Demo**: Showcases the pattern through a financial analysis use case
+
+## Architecture
+
+The system implements three main components:
+
+1. **Consortium Members**: Individual LLMs that analyze and provide responses
+2. **Arbiter**: A designated LLM that evaluates member responses and synthesizes final output
+3. **Event System**: Manages the workflow and communication between components
 
 ## How to use
 
-Run [`create-next-app`](https://github.com/vercel/next.js/tree/canary/packages/create-next-app) with [npm](https://docs.npmjs.com/cli/init), [Yarn](https://yarnpkg.com/lang/en/docs/cli/create/), or [pnpm](https://pnpm.io) to bootstrap the example:
-
-```bash
-npx create-next-app --example https://github.com/vercel-labs/ai-sdk-preview-pdf-support ai-sdk-preview-pdf-support-example
-```
-
-```bash
-yarn create next-app --example https://github.com/vercel-labs/ai-sdk-preview-pdf-support ai-sdk-preview-pdf-support-example
-```
-
-```bash
-pnpm create next-app --example https://github.com/vercel-labs/ai-sdk-preview-pdf-support ai-sdk-preview-pdf-support-example
-```
-
 To run the example locally you need to:
 
-1. Sign up for accounts with the AI providers you want to use (e.g., Google).
-2. Obtain API keys for Google provider.
-3. Set the required environment variables as shown in the `.env.example` file, but in a new file called `.env`.
-4. `npm install` to install the required dependencies.
-5. `npm run dev` to launch the development server.
-
+1. Sign up for API access with the AI providers (Anthropic, OpenAI, Google)
+2. Set up the required environment variables as shown in `.env.example`
+3. `npm install` to install dependencies
+4. `npm run dev` to start the development server
 
 ## Learn More
 
-To learn more about Vercel AI SDK or Next.js take a look at the following resources:
+- [Event-Driven Architecture](https://microservices.io/patterns/data/event-driven-architecture.html)
+- [AI SDK Documentation](https://sdk.vercel.ai/docs)
+- [Next.js Documentation](https://nextjs.org/docs)
 
-- [AI SDK docs](https://sdk.vercel.ai/docs)
-- [Vercel AI Playground](https://play.vercel.ai)
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
+## Deploy your own
 
+[![Deploy with Vercel](https://vercel.com/button)](https://vercel.com/new/clone?repository-url=https%3A%2F%2Fgithub.com%2Fvercel-labs%2Ffinancial-consortium-ai&env=ANTHROPIC_API_KEY,OPENAI_API_KEY,GOOGLE_API_KEY&envDescription=API%20keys%20needed%20for%20the%20LLM%20consortium)
