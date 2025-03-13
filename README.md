@@ -28,10 +28,4 @@ To run the example locally you need to:
 
 ## Learn More
 
-- [Event-Driven Architecture](https://microservices.io/patterns/data/event-driven-architecture.html)
-- [AI SDK Documentation](https://sdk.vercel.ai/docs)
-- [Next.js Documentation](https://nextjs.org/docs)
-
-## Deploy your own
-
-[![Deploy with Vercel](https://vercel.com/button)](https://vercel.com/new/clone?repository-url=https%3A%2F%2Fgithub.com%2Fvercel-labs%2Ffinancial-consortium-ai&env=ANTHROPIC_API_KEY,OPENAI_API_KEY,GOOGLE_API_KEY&envDescription=API%20keys%20needed%20for%20the%20LLM%20consortium)
+- [LLM Consortium Pattern](https://github.com/irthomasthomas/llm-consortium)
